@@ -1,0 +1,157 @@
+---
+title: "Assignment 3"
+author: "Nicole Mis"
+date: "February 23, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# 10.5 Exercises
+
+
+## 5. What does tibble::enframe() do? When might you use it?
+
+It turns a vector or list into a tibble. If the vector is named, then it assigns the name as the column name.For unnamed vectors, the sequence of the vector is used for the name column. You can use enframe when you want to turn a named list into a data frame. This allows a list of data to be transformed into a tibble. These lists could be data sets or regression results. You can also use enframe when your data is a vector. For instance, if you have data that is contained in separate vectors, then you can use enframe to convert it to a data frame and then manipulate that data and turn it into a more easily readible set of data. 
+
+&nbsp;
+
+```{r comment=NA}
+
+#binstall.packages("kableExtra")
+
+library(kableExtra)
+
+library(knitr)
+
+library(tidyverse)
+
+x <- c("a", "b", "c", "d", "e", "f", "g", "h")
+x <- enframe(x)
+x
+
+
+```
+
+
+# 12.6.1 
+
+
+## 3. I claimed that iso2 and iso3 were redundant with country. Confirm this claim.
+
+I checked to see how many unique values there were for country, iso2 and iso3 and I checked for unique combinations of these rows to confirm the above claim.
+
+&nbsp;
+
+```{r, comment=NA}
+
+library(tidyverse)
+
+who1 <- tidyr::who %>% gather(new_sp_m014:newrel_f65, key = "key", value = "cases", na.rm = TRUE)
+
+who1 %>% count(key)
+
+who2 <- who1 %>% mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
+
+who3 <- who2 %>% separate(key, c("new", "type", "sexage"), sep = "_")
+
+who3 %>% select(1:3) %>% sapply(function(x){length(unique(x))})
+
+ who3 %>% select(1:3) %>%
+   unite(combined, 1:3) %>%
+   select(combined) %>%
+   distinct() %>%
+   nrow()
+
+
+
+```
+
+### 4. For each country, year, and sex compute the total number of cases of TB. Make an informative visualisation of the data.
+
+
+```{r, comment=NA}
+ tidyr::who %>%
+   gather(code, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>% 
+   mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+   separate(code, c("new", "var", "sexage")) %>% 
+   select(-new, -iso2, -iso3) %>% 
+   separate(sexage, c("sex", "age"), sep = 1) %>%
+   group_by(country, year, sex) %>%
+   summarize(total_case = sum(value)) %>%
+   unite(country_sex, country, sex, remove = FALSE) %>%
+   ggplot() +
+   geom_line(mapping = aes(x = year, y = total_case, color = sex,
+                           group = country_sex))
+
+
+```
+
+
+### Table 4 -> table 5
+
+```{r, comment=NA}
+
+# install.packages("kableExtra")
+library(tidyverse)
+library(kableExtra)
+library(knitr)
+
+### HW added line 
+raw <- read_rds("rawdat.RDS")
+
+raw.tidy <- raw %>% gather(key = "Income", value = "freq", -religion)
+raw2 <- raw.tidy %>% arrange(religion)
+
+knitr::kable(head(raw2, n=10), "latex", booktabs = T, linesep = "") %>% kable_styling(position = "center")
+
+
+```
+
+### Table 7 -> table 8
+
+```{r, comment=NA}
+
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(kableExtra)
+
+bb <- read_csv("billboard.csv")
+
+bb.1 <- bb %>% gather(key="week", value = "rank", -year, -artist.inverted, -track, -time, -genre, -date.entered, -date.peaked)
+
+bb.2 <- bb.1 %>% select(year, artist=artist.inverted, time, track, date = date.entered, week, rank )
+
+bb.3 <- bb.2 %>% arrange(track)
+
+bb.4 <- bb.3 %>% filter(!is.na(rank))
+
+bb.5 <- bb.4 %>% separate(week, into=c("A", "B", "C"), sep=c(1, -8), convert=TRUE)
+
+bb.6 <- bb.5 %>% select(-A, -C)
+
+bb.7 <- bb.6 %>% dplyr::rename(week = B)
+
+bb.8 <- bb.7 %>% arrange(artist, track)
+
+bb.9 <- bb.8 %>% mutate(rank = as.integer(rank))
+
+bb.10 <- bb.9 %>% group_by(track) %>% mutate(week=seq(n()))
+
+bb.11 <- bb.10 %>% group_by(track) %>% mutate(date = date+(week-1)*7)
+
+time(options(digits.secs=2, digit.min=1))
+
+knitr::kable(head(bb.11, n=15), "latex", booktabs = T, linesep = "") %>% kable_styling(position = "center", latex_options = "scale_down")
+
+  
+
+```
+
+
+
+
